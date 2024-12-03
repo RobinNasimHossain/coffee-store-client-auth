@@ -1,5 +1,7 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../providers/AuthProvider";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const SignupForm = () => {
   const [formData, setFormData] = useState({
@@ -9,7 +11,6 @@ const SignupForm = () => {
   });
   const { createUser } = useContext(AuthContext);
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,15 +36,11 @@ const SignupForm = () => {
       return;
     }
 
-    setSuccessMessage("Signup successful!");
-    setFormData({ name: "", email: "", password: "" }); // Clear form
-
     createUser(formData.email, formData.password)
       .then((data) => {
-        console.log("User created successfully:", data.user);
+        const createdAt = data?.user?.metadata?.creationTime;
+        const newUser = { name, email, password, createdAt };
 
-        const createAt = data?.user?.metadata?.creationTime;
-        const newUser = { name, email, password, createAt };
         fetch("http://localhost:4500/users", {
           method: "POST",
           headers: {
@@ -51,29 +48,29 @@ const SignupForm = () => {
           },
           body: JSON.stringify(newUser),
         })
-          .then((res) => {
-            res.json();
-            if (res.ok) {
-              console.log("User created successfully on the server");
+          .then((res) => res.json())
+          .then((result) => {
+            if (result) {
+              toast.success("User created successfully!");
+              setFormData({ name: "", email: "", password: "" }); // Clear form
             } else {
-              console.log("Failed to create user on the server");
-              throw new Error("Failed to create user");
+              toast.error("Failed to save user data on the server.");
             }
           })
-
           .catch((err) => {
-            console.log(err);
-            setErrors({ ...errors, general: "Failed to create user" });
+            console.error("Error:", err);
+            toast.error("Failed to save user data on the server.");
           });
       })
       .catch((err) => {
-        console.log("Error:", err);
-        setErrors({ ...errors, general: "Failed to create user" });
+        console.error("Error:", err);
+        toast.error("Failed to create user.");
       });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+      <ToastContainer position="top-center" autoClose={3000} />
       <div className="bg-white shadow-lg rounded-lg w-full max-w-sm p-6">
         <h2 className="text-2xl font-bold text-center text-indigo-600">
           Create Account
@@ -159,11 +156,6 @@ const SignupForm = () => {
             Sign Up
           </button>
         </form>
-
-        {/* Success Message */}
-        {successMessage && (
-          <p className="text-green-500 text-center mt-4">{successMessage}</p>
-        )}
       </div>
     </div>
   );
